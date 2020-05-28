@@ -1,1 +1,14 @@
 # Defaults variables for role ocp-admin-node
+
+# User that will be created locally as service account for ocp cli
+ocp_service_account: ocpadm
+
+# Openshift deployed version
+ocp_openshift_version: 4.4.4
+
+# Name of the file in pkistore that contains certs/api endpoints
+ocp_kubeconfig_file: auth/kubeconfig
+
+# If we want to distribute some openshift templates to be applied by "oc apply", let's have these documented here
+ocp_templates:
+  - local_storage_operator_subscription.yaml

@@ -1,1 +1,55 @@
 # Defaults tasks for role ocp-admin-node
+
+- name: Creating unprivileged user dedicated to ocp admin cli tasks
+  user:
+    name: "{{ ocp_service_account }}"
+    shell: /bin/bash
+    create_home: True
+    comment: "OCP admin account"
+
+- name: Creating ocp directories for cli
+  file:
+    path: "/home/{{ ocp_service_account }}/{{ item }}"
+    state: directory
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+  with_items:
+    - bin
+    - ocp_downloads
+    - ocp_configs
+    - .kube
+
+- name: Downloading required openshift cli tools
+  get_url:
+    dest: "/home/{{ ocp_service_account }}/ocp_downloads/"
+    url: "{{ item }}"
+  with_items:
+    - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_openshift_version }}/openshift-client-linux-{{ ocp_openshift_version }}.tar.gz"
+    - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_openshift_version }}/openshift-install-linux-{{ ocp_openshift_version }}.tar.gz"
+  register: ocp_cli_download
+
+- name: Extracting openshift cli tools
+  unarchive:
+    dest: "/home/{{ ocp_service_account }}/bin/"
+    remote_src: True
+    src: "/home/{{ ocp_service_account }}/ocp_downloads/{{ item }}"
+  with_items:
+    - "openshift-client-linux-{{ ocp_openshift_version }}.tar.gz"
+    - "openshift-install-linux-{{ ocp_openshift_version }}.tar.gz"
+  when: ocp_cli_download is changed 
+
+- name: Distributing kube config for ocp admin user
+  copy:
+    src: "{{ pkistore }}/{{ ocp_kubeconfig_file }}"
+    dest: "/home/{{ ocp_service_account }}/.kube/config"
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+   
+- name: Distributing openshift templates
+  template:
+    src: "{{ item }}.j2"
+    dest: "/home/{{ ocp_service_account }}/ocp_configs/{{ item }}"
+  with_items: "{{ ocp_templates }}"
+  tags:
+    - config
+
