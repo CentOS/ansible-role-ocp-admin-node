@@ -10,11 +10,11 @@ spec:
       - key: kubernetes.io/hostname
         operator: In
         values:
-        {% for group in ocp_node_groups %}
-        {% for host in groups[group] %}
-        - {{ host }}
-        {% endfor %}
-        {% endfor %}
+{% for group in ocp_node_groups %}
+{% for host in groups[group] %}
+          - {{ host }}
+{% endfor %}
+{% endfor %}
   storageClassDevices:
   - storageClassName: "local-sc"
     volumeMode: Filesystem 

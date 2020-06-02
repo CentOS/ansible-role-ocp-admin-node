@@ -44,31 +44,40 @@
     dest: "/home/{{ ocp_service_account }}/.kube/config"
     owner: "{{ ocp_service_account }}"
     group: "{{ ocp_service_account }}"
-   
-- name: Distributing openshift templates
+    mode: 0600
+
+- name: Distributing openshift storage templates
   template:
     src: "{{ item }}.j2"
     dest: "/home/{{ ocp_service_account }}/ocp_configs/{{ item }}"
-  with_items: "{{ ocp_templates }}"
+  with_items: "{{ ocp_storage_templates }}"
+  register: ocp_storage_templates_result
   tags:
     - config
 
-- name: Create subscription for the Local Storage Operator
-  command: "oc apply -f /home/{{ ocp_service_account }}/ocp_configs/local_storage_operator_subscription.yaml"
-  tags:
-    - localstorage
+- name: Apply openshift local storage config
+  block:
+    - name: Create subscription for the Local Storage Operator
+      command: "/home/{{ ocp_service_account }}/bin/oc apply -f /home/{{ ocp_service_account }}/ocp_configs/local_storage_operator_subscription.yaml"
+      tags:
+        - localstorage
 
-- name: Wait for the Local Storage Operator deployment to succeed
-  shell: "oc get deployment local-storage-operator -n local-storage"
-  register: get_local_storage_deployment_cmd
-  failed_when: get_local_storage_deployment_cmd.rc != 0
-  until: get_local_storage_deployment_cmd.rc == 0
-  retries: 10
-  delay: 5
-  tags:
-    - localstorage
+    - name: Wait for the Local Storage Operator deployment to succeed
+      shell: "/home/{{ ocp_service_account }}/bin/oc get deployment local-storage-operator -n local-storage"
+      register: get_local_storage_deployment_cmd
+      failed_when: get_local_storage_deployment_cmd.rc != 0
+      until: get_local_storage_deployment_cmd.rc == 0
+      retries: 10
+      delay: 5
+      tags:
+        - localstorage
 
-- name: Create LocalVolume configuration for the Local Storage Operator
-  command: "oc apply -f /home/{{ ocp_service_account }}/ocp_configs/local_storage_operator_localvolume.yaml"
-  tags:
-    - localstorage
+    - name: Create LocalVolume configuration for the Local Storage Operator
+      command: "/home/{{ ocp_service_account }}/bin/oc apply -f /home/{{ ocp_service_account }}/ocp_configs/local_storage_operator_localvolume.yaml"
+      tags:
+        - localstorage
+  when: ocp_storage_templates_result is changed      
+  become_user: "{{ ocp_service_account }}"
+
+
+  

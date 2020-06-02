@@ -10,9 +10,11 @@ ocp_openshift_version: 4.4.4
 ocp_kubeconfig_file: auth/kubeconfig
 
 # If we want to distribute some openshift templates to be applied by "oc apply", let's have these documented here
-ocp_templates:
+# First templates to be used in the "storage" ansible block statement:
+ocp_storage_templates:
   - local_storage_operator_subscription.yaml
   - local_storage_operator_localvolume.yaml
 
+# Which ansible inventory group[s] to parse to render hostnames in some templates
 ocp_node_groups:
   - ocp-ci
