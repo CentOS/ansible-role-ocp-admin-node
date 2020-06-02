@@ -61,8 +61,8 @@
 - name: Wait for the Local Storage Operator deployment to succeed
   shell: "oc get deployment local-storage-operator -n local-storage"
   register: get_local_storage_deployment_cmd
-  failed_when: get_local_storage_deployment_cmd.rc == 0
-  until: get_local_storage_deployment_cmd.rc != 0
+  failed_when: get_local_storage_deployment_cmd.rc != 0
+  until: get_local_storage_deployment_cmd.rc == 0
   retries: 10
   delay: 5
   tags:
