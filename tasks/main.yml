@@ -80,4 +80,60 @@
   become_user: "{{ ocp_service_account }}"
 
 
-  
+- name: Distributing ingress controller TLS cert
+  copy:
+    src: "{{ pkistore }}/{{ item }}"
+    dest: "/home/{{ ocp_service_account }}/ocp_configs/{{ item }}"
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+    mode: 0600
+  with_items: "{{ ocp_ingress_tls_cert_files }}"
+  register: ocp_ingress_controller_certs_result
+  tags:
+    - certs
+
+
+- name: Apply openshift ingress controller certs
+  block:
+    - name: Query existance of the custom-ca configmap
+      command: "/home/{{ ocp_service_account }}/bin/oc get configmap custom-ca -n openshift-config"
+      register: check-custom-ca-exists
+      tags:
+        - certs
+    - name: The custom-ca configmap already exists (cert renewal), delete it
+      command: "/home/{{ ocp_service_account }}/bin/oc delete configmap custom-ca -n openshift-config"
+      tags:
+        - certs
+      when: check-custom-ca-exists.rc == 0
+    - name: Then (re)create the custom-ca configmap that includes the CA used to sign the new cert.
+      command: "/home/{{ ocp_service_account }}/bin/oc create configmap custom-ca --from-file=ca-bundle.crt=/home{{ ocp_service_account }}/ocp_configs/apps.ci.centos.org-CAChain.crt -n openshift-config"
+      tags:
+        - certs
+
+    - name: Update the cluster-wide proxy configuration with the newly created ConfigMap.
+      command: "/home/{{ ocp_service_account }}/bin/oc patch proxy/cluster --type=merge --patch='{\"spec\":{\"trustedCA\":{\"name\":\"custom-ca\"}}}'"
+      tags:
+        - certs
+
+    - name: Query existance of the letsencrypt secret
+      command: "/home/{{ ocp_service_account }}/bin/oc get secret letsencrypt -n openshift-ingress"
+      register: check-letsencrypt-exists
+      tags:
+        - certs
+    - name: The letsencrypt secret exists (cert renewal), delete it
+      command: "/home/{{ ocp_service_account }}/bin/oc delete secret letsencrypt -n openshift-ingress"
+      tags:
+        - certs
+      when: check-letsencrypt-exists.rc == 0
+    - name: Then (re)create the secret that contains the wildcard cert and key.
+      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls letsencrypt --cert=/home{{ ocp_service_account }}/ocp_configs/apps.ocp.ci.centos.org.crt --key=/home{{ ocp_service_account }}/ocp_configs/apps.ocp.ci.centos.org.key  -n openshift-ingress"
+      tags:
+        - certs
+
+    - name: Then update the Ingress Controller configuration with the newly created secret.
+      command: "/home/{{ ocp_service_account }}/bin/oc patch ingresscontroller.operator default --type=merge -p '{\"spec\":{\"defaultCertificate\":{\"name\":\"letsencrypt\"}}}'
+      -n openshift-ingress-operator"
+      tags:
+        - certs
+  when: ocp_ingress_controller_certs_result is changed
+  become_user: "{{ ocp_service_account }}"

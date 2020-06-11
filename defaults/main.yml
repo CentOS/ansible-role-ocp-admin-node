@@ -18,3 +18,10 @@ ocp_storage_templates:
 # Which ansible inventory group[s] to parse to render hostnames in some templates
 ocp_node_groups:
   - ocp-ci
+
+# Ingress controller TLS certificates
+ocp_ingress_tls_cert_files:
+  - apps.ocp.ci.centos.org.crt
+  - apps.ocp.ci.centos.org.key
+  - apps.ci.centos.org-CAChain.crt
+
