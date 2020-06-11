@@ -20,8 +20,6 @@ ocp_node_groups:
   - ocp-ci
 
 # Ingress controller TLS certificates
-ocp_ingress_tls_cert_files:
-  - apps.ocp.ci.centos.org.crt
-  - apps.ocp.ci.centos.org.key
-  - apps.ci.centos.org-CAChain.crt
+ocp_ingress_tls_public_name: apps.ocp.stg.ci.centos.org
+
 
