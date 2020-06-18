@@ -1,0 +1,78 @@
+# TLS / Certs tasks for  ocp-admin-node
+- name: Distributing ingress controller TLS cert
+  copy:
+    src: "{{ pkistore }}/{{ item }}"
+    dest: "/home/{{ ocp_service_account }}/ocp_configs/{{ item }}"
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+    mode: 0600
+  with_items:
+    - "{{ ocp_ingress_tls_public_name }}.crt"
+    - "{{ ocp_ingress_tls_public_name }}.key"
+    - "{{ ocp_ingress_tls_public_name }}-CAChain.crt"
+  register: ocp_ingress_controller_certs_result
+  tags:
+    - certs
+
+- name: Concatenating crt and ca if needed
+  shell:
+    cmd: "cat {{ ocp_ingress_tls_public_name }}.crt {{ ocp_ingress_tls_public_name }}-CAChain.crt > {{ ocp_ingress_tls_public_name }}-Chain.crt"
+    chdir: "/home/{{ ocp_service_account }}/ocp_configs/"
+  when: ocp_ingress_controller_certs_result is changed
+  become_user: "{{ ocp_service_account }}"
+  tags:
+    - certs
+
+- name: Apply openshift ingress controller certs
+  block:
+    - name: Query existance of the {{ ocp_ingress_tls_public_name }} secret
+      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress"
+      register: check_ingress_router_certs_exists
+      ignore_errors: True
+      tags:
+        - certs
+    - name: The secret exists (cert renewal), delete it
+      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress"
+      tags:
+        - certs
+      when: check_ingress_router_certs_exists.rc == 0
+    - name: Then (re)create the secret that contains the wildcard cert and key.
+      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-ingress"
+      tags:
+        - certs
+
+    - name: Then update the Ingress Controller configuration with the newly created secret.
+      command: "/home/{{ ocp_service_account }}/bin/oc patch ingresscontroller.operator default --type=merge -p '{\"spec\":{\"defaultCertificate\":{\"name\":\"{{ ocp_ingress_tls_public_name }}\"}}}'
+      -n openshift-ingress-operator"
+      tags:
+        - certs
+  when: ocp_ingress_controller_certs_result is changed
+  become_user: "{{ ocp_service_account }}"
+
+- name: Update API certs
+  block:
+    - name: Query existance of the {{ ocp_ingress_tls_public_name }} secret
+      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-config"
+      register: check_api_certs_exists
+      ignore_errors: True
+      tags:
+        - certs
+    - name: The secret exists (cert renewal), delete it
+      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-config"
+      tags:
+        - certs
+      when: check_api_certs_exists.rc == 0
+
+    - name: Then (re)create the secret that contains the wildcard cert and key.
+      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-config"
+      tags:
+        - certs
+
+    - name: Then update the api configuration with the newly created secret.
+      command: "/home/{{ ocp_service_account }}/bin/oc patch apiserver cluster --type=merge -p '{\"spec\":{\"servingCerts\": {\"namedCertificates\": [{\"names\": [\"{{ ocp_ingress_tls_public_name }}\"], \"servingCertificate\": {\"name\": \"{{ ocp_ingress_tls_public_name }}\"}}]}}}' "
+      tags:
+        - certs
+  when: ocp_ingress_controller_certs_result is changed
+  become_user: "{{ ocp_service_account }}"
+
+    
