@@ -1,0 +1,18 @@
+#!/bin/bash
+PATH=$PATH:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:$HOME/bin
+log_file="$HOME/ocp_backups/ocp-etc-backup.log"
+backup_dir="$HOME/ocp_backups/"
+
+# Finding first etcd master node
+etcd_node=$(oc get nodes|grep master|head -n 1 | awk '{print $1}')
+
+# Kicking remotely etcd-backup
+ssh -o StrictHostKeyChecking=no -i ${backup_dir}/.backup.key core@${etcd_node} "sudo /bin/rm -Rf /home/core/assets/backup/* ; sudo /usr/local/bin/cluster-backup.sh /home/core/assets/backup/; sudo chown -R core.core /home/core/assets/backup/*" >> $log_file 2>&1
+
+# Remotely retrieving backup files
+scp -o StrictHostKeyChecking=no -i ${backup_dir}/.backup.key core@${etcd_node}:/home/core/assets/backup/* ${backup_dir}/ >> $log_file 2>&1
+
+# Cleaning up older backups
+find ${backup_dir} -mmin +1440 -type f -name \*.tar.gz -exec rm -f {} \;
+find ${backup_dir} -mmin +1440 -type f -name \*.db -exec rm -f {} \;
+

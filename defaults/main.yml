@@ -6,6 +6,10 @@ ocp_service_account: ocpadm
 # Openshift deployed version
 ocp_openshift_version: 4.4.4
 
+# SSH key for CoreOS (needed for etcd backup operations)
+# This key will have to exist in pkistore directory (protected)
+ocp_service_account_ssh_key: fake
+
 # Name of the file in pkistore that contains certs/api endpoints
 ocp_kubeconfig_file: auth/kubeconfig
 

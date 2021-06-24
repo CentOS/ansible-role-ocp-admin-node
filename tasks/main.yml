@@ -17,7 +17,10 @@
     - bin
     - ocp_downloads
     - ocp_configs
+    - ocp_backups
     - .kube
+  tags:
+    - backup
 
 - name: Downloading required openshift cli tools
   get_url:
@@ -84,3 +87,7 @@
   tags: 
     - tls
     - certs
+
+- include_tasks: backup.yml
+  tags:
+    - backup

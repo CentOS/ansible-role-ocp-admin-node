@@ -1,0 +1,29 @@
+- name: Ensuring we have needed ssh key for coreos
+  copy:
+    src: "{{ pkistore }}/ssh/{{ ocp_service_account_ssh_key }}"
+    dest: "/home/{{ ocp_service_account }}/ocp_backups/.backup.key"
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+    mode: 0600
+  tags:
+    - backup
+
+- name: Distributing etcd-backup wrapper script
+  template:
+    src: etcd-backup.j2
+    dest: "/home/{{ ocp_service_account }}/bin/ocp-etcd-backup"
+    owner: "{{ ocp_service_account }}"
+    group: "{{ ocp_service_account }}"
+    mode: 0750
+  tags:
+    - backup
+
+- name: Ensuring we'll backup etcd on a daily basis    
+  cron:
+    name: OCP etcd backup
+    hour: '2'
+    minute: '00'
+    job: "/home/{{ ocp_service_account }}/bin/ocp-etcd-backup"
+    user: "{{ ocp_service_account }}"
+  tags:
+    - backup
