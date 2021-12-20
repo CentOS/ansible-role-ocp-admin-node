@@ -91,3 +91,29 @@
 - include_tasks: backup.yml
   tags:
     - backup
+
+
+# Creating projects defined in inventory
+- name: Creating projects in openshift if needed
+  block:
+    - name: "Rendering template for projects "
+      template: 
+        src: project.yml.j2
+        dest: "/home/{{ ocp_service_account }}/ocp_configs/project-{{ item.name }}.yml"
+      register: ocp_projects  
+      with_items: "{{ ocp_projects_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Creating/modifying project if needed
+      command:
+        cmd: "bin/oc apply -f ocp_configs/project-{{ item.item.name }}.yml"
+        chdir: "/home/{{ ocp_service_account }}"
+      with_items: "{{ ocp_projects.results }}"
+      when: item is changed
+      loop_control:
+        label: "{{ item.item.name }}"
+
+  become_user: "{{ ocp_service_account }}"
+  tags:
+    - projects

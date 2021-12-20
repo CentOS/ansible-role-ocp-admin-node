@@ -26,4 +26,11 @@ ocp_node_groups:
 # Ingress controller TLS certificates
 ocp_ingress_tls_public_name: apps.ocp.stg.ci.centos.org
 
-
+# Name of the projects to create on ocp
+# example
+# ocp_projects_list:
+#  - name: beautiful_project
+#    members:
+#      - user1
+#      - user2
+ocp_projects_list: []
