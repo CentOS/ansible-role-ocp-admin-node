@@ -34,3 +34,9 @@ ocp_ingress_tls_public_name: apps.ocp.stg.ci.centos.org
 #      - user1
 #      - user2
 ocp_projects_list: []
+
+# Name of the projects to delete on ocp
+# example
+# ocp_projects_to_delete_list:
+#   - name: not_beautiful_project
+ocp_projects_to_delete_list: []   

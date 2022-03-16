@@ -113,6 +113,17 @@
       when: item is changed
       loop_control:
         label: "{{ item.item.name }}"
+   
+    - name: Deleting project[s] if needed
+      shell:
+        cmd: "bin/oc get projects|grep {{ item.name }} && bin/oc delete project {{ item.name }} || exit 2"
+        chdir: "/home/{{ ocp_service_account }}"
+      register: delete_project
+      failed_when: "delete_project.rc == 1"
+      changed_when: delete_project.rc != 2
+      with_items: "{{ ocp_projects_to_delete_list }}"
+      loop_control:
+        label: "{{ item.name }}"
 
   become_user: "{{ ocp_service_account }}"
   tags:
