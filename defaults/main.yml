@@ -4,7 +4,7 @@
 ocp_service_account: ocpadm
 
 # Openshift deployed version
-ocp_openshift_version: 4.4.4
+ocp_openshift_version: 4.11.9
 
 # SSH key for CoreOS (needed for etcd backup operations)
 # This key will have to exist in pkistore directory (protected)
@@ -35,6 +35,11 @@ ocp_idp_client_id: to_be_filled
 ocp_idp_issuer_url: https://id.stg.centos.org/idp/openidc
 ocp_idp_secret_name: centos-idp-secret
 
+
+# Defining openshift cluster admin group and role binding ?
+# If set to true, a `openshift-cluster-admins` group will be created with following users and cluster-admin role bound to that group
+ocp_define_cluster_admins: False
+ocp_cluster_admins: []
 
 # Name of the projects to create on ocp
 # example

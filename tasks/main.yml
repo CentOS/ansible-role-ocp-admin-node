@@ -101,6 +101,24 @@
   tags:
     - auth
 
+# Defining cluster-admins group/role binding if enabled in inventory
+- block:
+    - name: Definining ocp admin group
+      template: 
+        src: openshift-admin-group.yml.j2
+        dest: "/home/{{ ocp_service_account }}/ocp_configs/openshift-admin-group.yml"
+      register: ocp_admin_group
+    
+    - name: Reflecting admin group membership and role binding if needed
+      command:
+        cmd: "bin/oc apply -f ocp_configs/openshift-admin-group.yml"
+        chdir: "/home/{{ ocp_service_account }}"
+      when: ocp_admin_group is changed
+
+  when: ocp_define_cluster_admins
+  tags:
+    - admins
+
 # Creating projects defined in inventory
 - name: Creating projects in openshift if needed
   block:
