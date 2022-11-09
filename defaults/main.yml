@@ -26,6 +26,16 @@ ocp_node_groups:
 # Ingress controller TLS certificates
 ocp_ingress_tls_public_name: apps.ocp.stg.ci.centos.org
 
+# Configuring ocp cluster for oauth 
+ocp_oauth: False
+# If set to true, ensure following variables/secrets are configured
+ocp_idp_secret: coming_from_idp
+ocp_idp_name: staging_fas_account
+ocp_idp_client_id: to_be_filled
+ocp_idp_issuer_url: https://id.stg.centos.org/idp/openidc
+ocp_idp_secret_name: centos-idp-secret
+
+
 # Name of the projects to create on ocp
 # example
 # ocp_projects_list:

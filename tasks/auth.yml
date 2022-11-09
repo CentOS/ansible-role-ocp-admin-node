@@ -1,0 +1,17 @@
+- block:
+    - name: Ensuring secret for oauth exists
+      shell: "/home/{{ ocp_service_account }}/bin/oc get secrets -n openshift-config |grep -q {{ ocp_idp_secret_name}} || /home/{{ ocp_service_account }}/bin/oc create secret generic {{ ocp_idp_secret_name}} --from-literal=clientSecret={{ ocp_idp_secret}} -n openshift-config"
+
+    - name: Creating oauth config file to apply
+      template:
+        src: openshift-oauth.yml.j2
+        dest: "/home/{{ ocp_service_account }}/ocp_configs/openshift-oauth.yml"
+      register: oauth_config
+    
+    - name: Applying Oauth config to openshift if needed
+      shell: "/home/{{ ocp_service_account }}/bin/oc apply -f /home/{{ ocp_service_account }}/ocp_configs/openshift-oauth.yml"
+      when: oauth_config is changed 
+
+  tags:
+    - oauth
+    - auth
