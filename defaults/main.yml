@@ -35,6 +35,14 @@ ocp_idp_client_id: to_be_filled
 ocp_idp_issuer_url: https://id.stg.centos.org/idp/openidc
 ocp_idp_secret_name: centos-idp-secret
 
+# Do we also want to automatically create/sync groups and projects/RBAC from fasjson ?
+ocp_fas_sync: False
+# If set to true, we'll need keytab and also group prefix to search for in fasjson
+# These groups need to existing in IPA/FAS to be synced
+ocp_fasjson_url: https://fasjson.stg.fedoraproject.org
+ocp_fas_group_prefix: ocp-cico-
+# Needed keytab pkistore to query fasjson, under {{ pkistore }}/aws-ocp directory
+ocp_fas_sync_keytab: to_be_defined
 
 # Defining openshift cluster admin group and role binding ?
 # If set to true, a `openshift-cluster-admins` group will be created with following users and cluster-admin role bound to that group

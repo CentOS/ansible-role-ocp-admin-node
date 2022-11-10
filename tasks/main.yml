@@ -154,3 +154,10 @@
   become_user: "{{ ocp_service_account }}"
   tags:
     - projects
+
+- include_tasks: fas-projects.yml
+  when: ocp_fas_sync
+  tags:
+    - fas
+
+    

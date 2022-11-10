@@ -1,0 +1,74 @@
+#!/usr/bin/python3
+import sys
+import requests
+import json
+import os
+from requests_gssapi import HTTPSPNEGOAuth
+import logging
+logging.basicConfig(level=logging.INFO, filename='/home/{{ ocp_service_account }}/ocp-fasjson-projects.log', filemode='a', format='%(asctime)s - %(message)s')
+
+
+fasjson_base_url = "{{ ocp_fasjson_url }}"
+fasjson_keytab = "{{ ocp_fas_sync_keytab }}"
+fasjson_full_url = '%s/v1/groups/' % (fasjson_base_url)
+os.environ['KRB5_CLIENT_KTNAME'] = '/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_fas_sync_keytab }}'
+local_group_file = '/home/{{ ocp_service_account }}/ocp_configs/ocp-fas-projects.yml'
+group_prefix = '{{ ocp_fas_group_prefix }}'
+
+if __name__ == '__main__':
+
+  try:
+    logging.info('[START] => Querying %s', fasjson_base_url)
+    gssapi_auth = HTTPSPNEGOAuth(opportunistic_auth=True,mutual_authentication='OPTIONAL')
+    results = requests.get(fasjson_full_url, auth=gssapi_auth) 
+    json_body = json.loads(results.text)
+    fo = open(local_group_file,"w")
+    for group in json_body['result']:
+      if group['groupname'].startswith(group_prefix):
+        logging.info('Querying [%s] for members of group [%s]', fasjson_base_url, group['groupname'])
+        group_members_url = '%s/v1/groups/%s/members/' % (fasjson_base_url, group['groupname'])
+        group_members = requests.get(group_members_url, auth=gssapi_auth)
+        group_members_json = json.loads(group_members.text)
+        userlist = []
+        group_header = ['---\n', 'kind: Group\n', 'apiVersion: user.openshift.io/v1\n', 'metadata:\n']
+        fo.writelines (group_header)
+        group_string = '  name: %s \n' % (group['groupname'].replace(group_prefix,''))
+        fo.write (group_string)
+        fo.write ('users: \n')
+        for user in group_members_json['result']:
+          user_string = '- %s \n' % (user['username'])
+          fo.write (user_string)
+        namespace_header = ['---\n', 'kind: Namespace\n', 'apiVersion: v1\n', 'metadata:\n']
+        fo.writelines (namespace_header)
+        group_string = '  name: %s \n' % (group['groupname'].replace(group_prefix,''))
+        fo.write (group_string)
+        rbac_header = ['---\n', 'kind: RoleBinding\n', 'apiVersion: rbac.authorization.k8s.io/v1\n', 'metadata:\n']
+        fo.writelines (rbac_header)
+        group_string = '''  name: %s
+  namespace: %s 
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: %s
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin 
+''' % (group['groupname'].replace(group_prefix,''),group['groupname'].replace(group_prefix,''),group['groupname'].replace(group_prefix,''))
+        fo.write (group_string)        
+    fo.close()
+    logging.info('[FAS] => Finished querying %s', fasjson_base_url)
+
+  except Exception as e:
+    logging.error("Error occured querying FAS traceback", exc_info=True)
+    sys.exit(1)
+
+  try:
+    logging.info('[FAS -> OCP] => Applying changes in ocp')
+    os.system('/home/{{ ocp_service_account }}/bin/oc apply -f /home/{{ ocp_service_account }}/ocp_configs/ocp-fas-projects.yml >/dev/null 2>&1')
+
+  except Exception as e:
+    logging.error("Error occured when applying changes to Openshift ", exc_info=True)
+    sys.exit(1)
+
+  

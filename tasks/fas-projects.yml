@@ -1,0 +1,28 @@
+- block:
+    - name: Ensuring we have some needed packages installed
+      yum:
+        name: ['krb5-workstation', 'python3', 'python3-requests-gssapi']
+        state: installed
+
+    - name: Distributing script to sync from FAS
+      template:
+        src: fasjson-group-sync.j2
+        dest: "/home/{{ ocp_service_account }}/bin/fasjson-group-sync"
+        mode: 0755
+
+    - name: Ensuring we have correct keytab file to query fasjson
+      copy:
+        src: "{{ pkistore }}/aws-ocp/{{ ocp_fas_sync_keytab }}"
+        dest: "/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_fas_sync_keytab }}"
+        owner: "{{ ocp_service_account }}"
+
+    - name: Cron job to sync from FAS
+      ansible.builtin.cron:
+        name: "FAS to OCP projects and groups sync"
+        job: "/home/{{ ocp_service_account }}/bin/fasjson-group-sync"
+        minute: "*/2"
+        user: "{{ ocp_service_account }}"
+
+  tags:
+    - fas
+
