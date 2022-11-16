@@ -116,6 +116,7 @@
       when: ocp_admin_group is changed
 
   when: ocp_define_cluster_admins
+  become_user: "{{ ocp_service_account }}"
   tags:
     - admins
 
