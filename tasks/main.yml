@@ -18,6 +18,7 @@
     - ocp_downloads
     - ocp_configs
     - ocp_backups
+    - pv_configs
     - .kube
   tags:
     - backup
