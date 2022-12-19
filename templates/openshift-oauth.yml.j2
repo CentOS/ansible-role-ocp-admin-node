@@ -5,7 +5,7 @@ metadata:
 spec:
   identityProviders:
   - name: {{ ocp_idp_name }}   # should be the same used in the callback url used when creating oidc provider
-    mappingMethod: claim
+    mappingMethod: add
     type: OpenID
     openID:
       clientID: {{ ocp_idp_client_id }}   # should be the name used to create idp provider
@@ -20,6 +20,7 @@ spec:
           - nickname
           - given_name
         preferredUsername:
+          - preferred_username
           - nickname
           - name
           - given_name
