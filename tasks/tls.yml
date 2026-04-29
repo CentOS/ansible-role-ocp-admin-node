@@ -26,24 +26,24 @@
 - name: Apply openshift ingress controller certs
   block:
     - name: Query existance of the {{ ocp_ingress_tls_public_name }} secret
-      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress"
+      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress {{ ocp_oc_extra_args }}"
       register: check_ingress_router_certs_exists
       ignore_errors: True
       tags:
         - certs
     - name: The secret exists (cert renewal), delete it
-      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress"
+      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-ingress {{ ocp_oc_extra_args }}"
       tags:
         - certs
       when: check_ingress_router_certs_exists.rc == 0
     - name: Then (re)create the secret that contains the wildcard cert and key.
-      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-ingress"
+      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-ingress {{ ocp_oc_extra_args }}"
       tags:
         - certs
 
     - name: Then update the Ingress Controller configuration with the newly created secret.
       command: "/home/{{ ocp_service_account }}/bin/oc patch ingresscontroller.operator default --type=merge -p '{\"spec\":{\"defaultCertificate\":{\"name\":\"{{ ocp_ingress_tls_public_name }}\"}}}'
-      -n openshift-ingress-operator"
+      -n openshift-ingress-operator {{ ocp_oc_extra_args }}"
       tags:
         - certs
   when: ocp_ingress_controller_certs_result is changed
@@ -52,24 +52,24 @@
 - name: Update API certs
   block:
     - name: Query existance of the {{ ocp_ingress_tls_public_name }} secret
-      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-config"
+      command: "/home/{{ ocp_service_account }}/bin/oc get secret {{ ocp_ingress_tls_public_name }} -n openshift-config {{ ocp_oc_extra_args }}"
       register: check_api_certs_exists
       ignore_errors: True
       tags:
         - certs
     - name: The secret exists (cert renewal), delete it
-      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-config"
+      command: "/home/{{ ocp_service_account }}/bin/oc delete secret {{ ocp_ingress_tls_public_name }} -n openshift-config {{ ocp_oc_extra_args }}"
       tags:
         - certs
       when: check_api_certs_exists.rc == 0
 
     - name: Then (re)create the secret that contains the wildcard cert and key.
-      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-config"
+      command: "/home/{{ ocp_service_account }}/bin/oc create secret tls {{ ocp_ingress_tls_public_name }} --cert=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}-Chain.crt --key=/home/{{ ocp_service_account }}/ocp_configs/{{ ocp_ingress_tls_public_name }}.key -n openshift-config {{ ocp_oc_extra_args }}"
       tags:
         - certs
 
     - name: Then update the api configuration with the newly created secret.
-      command: "/home/{{ ocp_service_account }}/bin/oc patch apiserver cluster --type=merge -p '{\"spec\":{\"servingCerts\": {\"namedCertificates\": [{\"names\": [\"{{ ocp_ingress_tls_public_name }}\"], \"servingCertificate\": {\"name\": \"{{ ocp_ingress_tls_public_name }}\"}}]}}}' "
+      command: "/home/{{ ocp_service_account }}/bin/oc patch apiserver cluster --type=merge -p '{\"spec\":{\"servingCerts\": {\"namedCertificates\": [{\"names\": [\"{{ ocp_ingress_tls_public_name }}\"], \"servingCertificate\": {\"name\": \"{{ ocp_ingress_tls_public_name }}\"}}]}}}' {{ ocp_oc_extra_args }}"
       tags:
         - certs
   when: ocp_ingress_controller_certs_result is changed

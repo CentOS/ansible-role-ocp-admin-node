@@ -23,13 +23,15 @@
   tags:
     - backup
 
+# FIXME ! switched to plain shell command instead of get_url module because of ansible 2.14 not able to use python-requests on py3.12 (see below)
+# https://github.com/ansible/ansible/commit/0df794e5a4fe4597ee65b0d492fbf0d0989d5ca0
 - name: Downloading required openshift cli tools
-  get_url:
-    dest: "/home/{{ ocp_service_account }}/ocp_downloads/"
-    url: "{{ item }}"
+  shell:
+    chdir: "/home/{{ ocp_service_account }}/ocp_downloads/"
+    cmd: "curl -L -O {{ item }} && touch oc-client-{{ ocp_openshift_version }}"
+    creates: "/home/{{ ocp_service_account }}/ocp_downloads/oc-client-{{ ocp_openshift_version }}"
   with_items:
     - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_openshift_version }}/openshift-client-linux-{{ ocp_openshift_version }}.tar.gz"
-    - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_openshift_version }}/openshift-install-linux-{{ ocp_openshift_version }}.tar.gz"
   register: ocp_cli_download
   tags:
     - cli
@@ -41,7 +43,6 @@
     src: "/home/{{ ocp_service_account }}/ocp_downloads/{{ item }}"
   with_items:
     - "openshift-client-linux-{{ ocp_openshift_version }}.tar.gz"
-    - "openshift-install-linux-{{ ocp_openshift_version }}.tar.gz"
   when: ocp_cli_download is changed 
   tags:
     - cli
