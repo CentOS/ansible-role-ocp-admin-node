@@ -25,6 +25,11 @@ ocp_storage_templates:
   - local_storage_operator_subscription.yaml
   - local_storage_operator_localvolume.yaml
 
+# if running with AWS EFS for PersistentVolumes, set these accordingly
+ocp_nfs_pv: False
+ocp_nfs_server: your.host.domain.com
+ocp_nfs_export: /
+
 # Which ansible inventory group[s] to parse to render hostnames in some templates
 ocp_node_groups:
   - ocp-ci

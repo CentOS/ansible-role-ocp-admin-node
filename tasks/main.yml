@@ -64,6 +64,22 @@
   tags:
     - config
 
+- block:
+    - name: Ensuring we have local mount point
+      file:
+        path: /mnt/ocp_store
+        state: directory
+
+    - name: Ensuring nfs export is mounted on mgmt station
+      mount:
+        fstype: nfs
+        src: "{{ ocp_nfs_server }}:{{ ocp_nfs_export }}"
+        path: /mnt/ocp_store
+        state: mounted
+  when: ocp_nfs_pv
+  tags:
+    - nfs
+
 - name: Apply openshift local storage config
   block:
     - name: Create subscription for the Local Storage Operator
